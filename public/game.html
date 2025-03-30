@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Prediction Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .game-container {
+            perspective: 1000px;
+        }
+        .color-card {
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        .color-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .avatar-display {
+            width: 120px;
+            height: 120px;
+        }
+        .timer {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-indigo-700 mb-4 md:mb-0">Color Prediction Game</h1>
+            <div class="flex items-center gap-4">
+                <div id="avatarDisplay" class="avatar-display rounded-full shadow-lg"></div>
+                <div class="bg-white p-3 rounded-lg shadow">
+                    <div class="text-sm text-gray-500">Score</div>
+                    <div id="scoreDisplay" class="text-2xl font-bold text-indigo-600">0</div>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow">
+                    <div class="text-sm text-gray-500">Time</div>
+                    <div id="timerDisplay" class="timer text-2xl font-bold text-red-500">60</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-container bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Match the color sequence!</h2>
+            <div id="colorSequence" class="flex flex-wrap gap-4 mb-6"></div>
+            
+            <div class="flex flex-wrap gap-4 justify-center" id="colorOptions"></div>
+        </div>
+
+        <div class="text-center">
+            <button id="submitBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 disabled:opacity-50">
+                Submit Prediction
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let score = 0;
+        let timeLeft = 60;
+        let timer;
+        let currentSequence = [];
+        let userSelection = [];
+        let avatarColors = { r: 128, g: 128, b: 128 };
+
+        // DOM elements
+        const colorSequence = document.getElementById('colorSequence');
+        const colorOptions = document.getElementById('colorOptions');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const avatarDisplay = document.getElementById('avatarDisplay');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Initialize game
+        function initGame() {
+            // Load avatar colors from localStorage
+            const savedColors = localStorage.getItem('avatarColors');
+            if (savedColors) {
+                avatarColors = JSON.parse(savedColors);
+                avatarDisplay.style.backgroundColor = `rgb(${avatarColors.r}, ${avatarColors.g}, ${avatarColors.b})`;
+            }
+
+            // Start timer
+            timer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+
+            // Generate first sequence
+            generateSequence();
+        }
+
+        // Generate color sequence
+        function generateSequence() {
+            currentSequence = [];
+            userSelection = [];
+            colorSequence.innerHTML = '';
+            colorOptions.innerHTML = '';
+
+            // Generate 4 random colors
+            for (let i = 0; i < 4; i++) {
+                const color = generateRandomColor();
+                currentSequence.push(color);
+                
+                // Display sequence
+                const colorBox = document.createElement('div');
+                colorBox.className = 'color-card w-16 h-16 rounded-lg shadow';
+                colorBox.style.backgroundColor = color;
+                colorSequence.appendChild(colorBox);
+            }
+
+            // Generate options (including the correct sequence)
+            const options = [...currentSequence];
+            while (options.length < 8) {
+                options.push(generateRandomColor());
+            }
+            shuffleArray(options);
+
+            // Display options
+            options.forEach((color, index) => {
+                const option = document.createElement('div');
+                option.className = 'color-card w-16 h-16 rounded-lg shadow cursor-pointer';
+                option.style.backgroundColor = color;
+                option.dataset.color = color;
+                option.addEventListener('click', () => selectColor(option, color));
+                colorOptions.appendChild(option);
+            });
+        }
+
+        // Helper function to generate random color
+        function generateRandomColor() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+            return `rgb(${r},${g},${b})`;
+        }
+
+        // Helper function to shuffle array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Handle color selection
+        function selectColor(element, color) {
+            if (userSelection.length >= currentSequence.length) return;
+            
+            userSelection.push(color);
+            element.classList.add('ring-4', 'ring-indigo-400');
+            
+            if (userSelection.length === currentSequence.length) {
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Submit prediction
+        submitBtn.addEventListener('click', () => {
+            // Check if prediction is correct
+            const isCorrect = currentSequence.every((color, index) => 
+                color === userSelection[index]
+            );
+
+            if (isCorrect) {
+                score += 10;
+                scoreDisplay.textContent = score;
+                alert('Correct! +10 points');
+            } else {
+                alert('Incorrect sequence! Try again.');
+            }
+
+            // Generate new sequence
+            submitBtn.disabled = true;
+            generateSequence();
+        });
+
+        // End game
+        function endGame() {
+            clearInterval(timer);
+            alert(`Game over! Your score: ${score}`);
+            
+            // Save results and redirect
+            localStorage.setItem('gameScore', score);
+            window.location.href = 'results.html';
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
