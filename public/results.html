@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .result-card {
+            transition: all 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .avatar-result {
+            width: 150px;
+            height: 150px;
+        }
+        .celebrate {
+            animation: celebrate 0.5s ease infinite alternate;
+        }
+        @keyframes celebrate {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-3xl mx-auto">
+            <h1 class="text-4xl font-bold text-center mb-8 text-indigo-700">Your Results</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <!-- Avatar Card -->
+                <div class="result-card bg-white rounded-xl shadow-lg p-6 flex flex-col items-center">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">Your Avatar</h2>
+                    <div id="resultAvatar" class="avatar-result rounded-full shadow-lg mb-4"></div>
+                    <div id="colorCode" class="text-gray-600 font-mono mb-4">RGB(128, 128, 128)</div>
+                </div>
+
+                <!-- Results Card -->
+                <div class="result-card bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">Game Summary</h2>
+                    <div class="space-y-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Final Score:</span>
+                            <span id="finalScore" class="font-bold text-indigo-600">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Color Style:</span>
+                            <span id="colorStyle" class="font-bold text-indigo-600">Neutral</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Performance:</span>
+                            <span id="performance" class="font-bold text-green-600">Good</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prediction Result -->
+            <div class="result-card bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Color Personality Prediction</h2>
+                <p id="predictionText" class="text-gray-700 mb-4">
+                    Based on your color choices and game performance...
+                </p>
+                <div id="predictionIcon" class="text-6xl text-center mb-4 text-yellow-400">
+                    <i class="fas fa-star celebrate"></i>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="create-avatar.html" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full text-center transition duration-300">
+                    <i class="fas fa-palette mr-2"></i> Create New Avatar
+                </a>
+                <a href="game.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full text-center transition duration-300">
+                    <i class="fas fa-redo mr-2"></i> Play Again
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const resultAvatar = document.getElementById('resultAvatar');
+        const colorCode = document.getElementById('colorCode');
+        const finalScore = document.getElementById('finalScore');
+        const colorStyle = document.getElementById('colorStyle');
+        const performance = document.getElementById('performance');
+        const predictionText = document.getElementById('predictionText');
+        const predictionIcon = document.getElementById('predictionIcon');
+
+        // Load results when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Get avatar colors from localStorage
+            const avatarColors = JSON.parse(localStorage.getItem('avatarColors')) || { r: 128, g: 128, b: 128 };
+            const score = localStorage.getItem('gameScore') || 0;
+            
+            // Display avatar
+            resultAvatar.style.backgroundColor = `rgb(${avatarColors.r}, ${avatarColors.g}, ${avatarColors.b})`;
+            colorCode.textContent = `RGB(${avatarColors.r}, ${avatarColors.g}, ${avatarColors.b})`;
+            
+            // Display score
+            finalScore.textContent = score;
+            
+            // Determine performance level
+            const perfText = score >= 50 ? 'Excellent' : score >= 30 ? 'Good' : 'Keep Practicing';
+            const perfColor = score >= 50 ? 'text-green-600' : score >= 30 ? 'text-blue-600' : 'text-orange-600';
+            performance.textContent = perfText;
+            performance.className = `font-bold ${perfColor}`;
+            
+            // Get color prediction from server
+            getColorPrediction(avatarColors, score);
+        });
+
+        // Get color prediction from server
+        async function getColorPrediction(colors, score) {
+            try {
+                const response = await fetch('/api/predict-color', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        r: colors.r,
+                        g: colors.g,
+                        b: colors.b
+                    })
+                });
+                
+                const data = await response.json();
+                colorStyle.textContent = data.style;
+                
+                // Set prediction text based on style and score
+                setPredictionText(data.style, score);
+                
+                // Save results to server
+                saveResults(colors, score, data.style);
+            } catch (error) {
+                console.error('Error getting prediction:', error);
+                colorStyle.textContent = 'Unknown';
+                predictionText.textContent = "We couldn't determine your color personality this time.";
+            }
+        }
+
+        // Save results to server
+        async function saveResults(colors, score, style) {
+            try {
+                await fetch('/api/save-score', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        colors,
+                        score,
+                        style
+                    })
+                });
+            } catch (error) {
+                console.error('Error saving results:', error);
+            }
+        }
+
+        // Set prediction text based on style and score
+        function setPredictionText(style, score) {
+            let text = '';
+            let icon = 'fa-star';
+            
+            switch(style) {
+                case 'Bold Red':
+                    text = `Your bold red choices show a confident and energetic personality. `;
+                    icon = 'fa-fire';
+                    break;
+                case 'Natural Green':
+                    text = `Your natural green preferences indicate a balanced and harmonious nature. `;
+                    icon = 'fa-leaf';
+                    break;
+                case 'Cool Blue':
+                    text = `Your cool blue selections reveal a calm and thoughtful character. `;
+                    icon = 'fa-water';
+                    break;
+                case 'Vibrant Yellow':
+                    text = `Your vibrant yellow picks demonstrate creativity and optimism. `;
+                    icon = 'fa-sun';
+                    break;
+                default:
+                    text = `Your neutral color choices show a versatile and adaptable approach. `;
+                    icon = 'fa-star';
+            }
+            
+            // Add performance comment
+            if (score >= 50) {
+                text += `With your excellent score of ${score}, you have a sharp eye for color patterns!`;
+            } else if (score >= 30) {
+                text += `Your good score of ${score} shows you're developing a keen sense for colors.`;
+            } else {
+                text += `With more practice (score: ${score}), you'll improve your color prediction skills!`;
+            }
+            
+            predictionText.textContent = text;
+            predictionIcon.innerHTML = `<i class="fas ${icon} celebrate"></i>`;
+        }
+    </script>
+</body>
+</html>
