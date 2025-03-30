@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your Avatar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .avatar-preview {
+            width: 200px;
+            height: 200px;
+            transition: all 0.3s ease;
+        }
+        .color-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .red-slider::-webkit-slider-thumb {
+            background: #ef4444;
+        }
+        .green-slider::-webkit-slider-thumb {
+            background: #10b981;
+        }
+        .blue-slider::-webkit-slider-thumb {
+            background: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-12">
+        <h1 class="text-3xl font-bold text-center mb-8 text-indigo-700">Create Your Avatar</h1>
+        
+        <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
+            <!-- Avatar Preview -->
+            <div class="flex flex-col items-center">
+                <div id="avatarPreview" class="avatar-preview rounded-full shadow-xl mb-4 bg-gray-300"></div>
+                <div id="colorValue" class="text-gray-700 font-mono">RGB(128, 128, 128)</div>
+            </div>
+
+            <!-- Color Controls -->
+            <div class="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+                <div class="mb-6">
+                    <label class="block text-red-500 font-medium mb-2">Red</label>
+                    <input type="range" min="0" max="255" value="128" 
+                           class="red-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                           id="redSlider">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>0</span>
+                        <span id="redValue">128</span>
+                        <span>255</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-green-500 font-medium mb-2">Green</label>
+                    <input type="range" min="0" max="255" value="128" 
+                           class="green-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                           id="greenSlider">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>0</span>
+                        <span id="greenValue">128</span>
+                        <span>255</span>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <label class="block text-blue-500 font-medium mb-2">Blue</label>
+                    <input type="range" min="0" max="255" value="128" 
+                           class="blue-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                           id="blueSlider">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>0</span>
+                        <span id="blueValue">128</span>
+                        <span>255</span>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-full transition duration-300">
+                    Generate Avatar & Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const redSlider = document.getElementById('redSlider');
+        const greenSlider = document.getElementById('greenSlider');
+        const blueSlider = document.getElementById('blueSlider');
+        const redValue = document.getElementById('redValue');
+        const greenValue = document.getElementById('greenValue');
+        const blueValue = document.getElementById('blueValue');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const colorValue = document.getElementById('colorValue');
+        const generateBtn = document.getElementById('generateBtn');
+
+        // Update avatar preview
+        function updateAvatar() {
+            const r = redSlider.value;
+            const g = greenSlider.value;
+            const b = blueSlider.value;
+            
+            // Update display values
+            redValue.textContent = r;
+            greenValue.textContent = g;
+            blueValue.textContent = b;
+            colorValue.textContent = `RGB(${r}, ${g}, ${b})`;
+            
+            // Update avatar color
+            avatarPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        }
+
+        // Event listeners
+        redSlider.addEventListener('input', updateAvatar);
+        greenSlider.addEventListener('input', updateAvatar);
+        blueSlider.addEventListener('input', updateAvatar);
+
+        // Generate button click handler
+        generateBtn.addEventListener('click', () => {
+            const avatarColors = {
+                r: redSlider.value,
+                g: greenSlider.value,
+                b: blueSlider.value
+            };
+            localStorage.setItem('avatarColors', JSON.stringify(avatarColors));
+            window.location.href = 'game.html';
+        });
+
+        // Initialize
+        updateAvatar();
+    </script>
+</body>
+</html>
